@@ -29,7 +29,9 @@ fn main() {
             let mut i = 0;
             while i < even2.len() {
                 even2[i] /= 2;
-                if even2[i] % 2 != 0 {
+                if even2[i] == 0 {
+                    even2.swap_remove(i);
+                } else if even2[i] % 2 != 0 {
                     odd2.push(even2.swap_remove(i));
                 } else {
                     i += 1;
@@ -43,7 +45,9 @@ fn main() {
             let mut i = 0;
             while i < odd2.len() {
                 odd2[i] /= 2;
-                if odd2[i] % 2 == 0 {
+                if odd2[i] == 0 {
+                    odd2.swap_remove(i);
+                } else if odd2[i] % 2 == 0 {
                     even2.push(odd2.swap_remove(i));
                 } else {
                     i += 1;
@@ -59,7 +63,9 @@ fn main() {
             let mut i = 0;
             while i < even2.len() {
                 even2[i] /= 2;
-                if even2[i] % 2 != 0 {
+                if even2[i] == 0 {
+                    even2.swap_remove(i);
+                } else if even2[i] % 2 != 0 {
                     new_odd2.push(even2.swap_remove(i));
                 } else {
                     i += 1;
@@ -68,7 +74,9 @@ fn main() {
             i = 0;
             while i < odd2.len() {
                 odd2[i] /= 2;
-                if odd2[i] % 2 == 0 {
+                if odd2[i] == 0 {
+                    odd2.swap_remove(i);
+                } else if odd2[i] % 2 == 0 {
                     new_even2.push(odd2.swap_remove(i));
                 } else {
                     i += 1;
