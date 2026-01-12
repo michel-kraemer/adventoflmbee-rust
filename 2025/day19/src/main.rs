@@ -1,7 +1,6 @@
-use std::collections::VecDeque;
 use std::fs;
 
-fn bfs(
+fn dp(
     grid: &[u64],
     width: usize,
     height: usize,
@@ -12,27 +11,30 @@ fn bfs(
 ) -> Vec<u64> {
     let mut best = vec![0; width * height];
 
-    let mut queue = VecDeque::new();
-    queue.push_back((grid[start.1 * width + start.0], start.0, start.1));
+    let mut sy = start.1 as isize;
+    while sy != end.1 as isize + dy {
+        let y = sy as usize;
 
-    while let Some((score, x, y)) = queue.pop_front() {
-        let nx = x.wrapping_add_signed(dx);
-        if (dx > 0 && nx <= end.0) || (dx < 0 && x > 0 && nx >= end.0) {
-            let new_score = score + grid[y * width + nx];
-            if best[y * width + nx] < new_score {
-                best[y * width + nx] = new_score;
-                queue.push_back((new_score, nx, y));
-            }
+        let mut sx = start.0 as isize;
+        while sx != end.0 as isize + dx {
+            let x = sx as usize;
+
+            let a = if sx != start.0 as isize {
+                best[y * width + (sx - dx) as usize]
+            } else {
+                0
+            };
+            let b = if sy != start.1 as isize {
+                best[(sy - dy) as usize * width + x]
+            } else {
+                0
+            };
+            best[y * width + x] = grid[y * width + x] + a.max(b);
+
+            sx += dx;
         }
 
-        let ny = y.wrapping_add_signed(dy);
-        if (dy > 0 && ny <= end.1) || (dy < 0 && y > 0 && ny >= end.1) {
-            let new_score = score + grid[ny * width + x];
-            if best[ny * width + x] < new_score {
-                best[ny * width + x] = new_score;
-                queue.push_back((new_score, x, ny));
-            }
-        }
+        sy += dy;
     }
 
     best
@@ -54,10 +56,10 @@ fn main() {
 
         // perform BFS from each corner to its diagonally opposite one top left
         // to bottom right:
-        let best_top_left = bfs(&grid, width, height, (0, 0), (width - 1, height - 1), 1, 1);
+        let best_top_left = dp(&grid, width, height, (0, 0), (width - 1, height - 1), 1, 1);
 
         // bottom right to top left:
-        let best_bottom_right = bfs(
+        let best_bottom_right = dp(
             &grid,
             width,
             height,
@@ -68,10 +70,10 @@ fn main() {
         );
 
         // bottom left to top right
-        let best_bottom_left = bfs(&grid, width, height, (0, height - 1), (width - 1, 0), 1, -1);
+        let best_bottom_left = dp(&grid, width, height, (0, height - 1), (width - 1, 0), 1, -1);
 
         // top right to bottom left
-        let best_top_right = bfs(&grid, width, height, (width - 1, 0), (0, height - 1), -1, 1);
+        let best_top_right = dp(&grid, width, height, (width - 1, 0), (0, height - 1), -1, 1);
 
         // part 1
         total1 *= best_top_left[height * width - 1];
