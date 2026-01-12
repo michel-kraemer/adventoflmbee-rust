@@ -1,5 +1,7 @@
 use std::fs;
 
+use rustc_hash::FxHashMap;
+
 struct Point {
     x: i64,
     y: i64,
@@ -14,14 +16,14 @@ impl From<(i64, i64)> for Point {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct Circle {
     x: i64,
     y: i64,
     r: i64,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct Rect {
     min_x: i64,
     min_y: i64,
@@ -96,7 +98,12 @@ impl Overlaps<Rect> for Circle {
     }
 }
 
-fn dfs(rect: &Rect, circles: &[Circle], min_overlaps: usize) -> Option<i64> {
+fn dfs(
+    rect: &Rect,
+    circles: &[Circle],
+    min_overlaps: usize,
+    cache: &mut FxHashMap<Rect, usize>,
+) -> Option<i64> {
     // if the rectangle contains only one point check if this is the point we're
     // looking for
     if rect.width() == 1 && rect.height() == 1 {
@@ -136,50 +143,26 @@ fn dfs(rect: &Rect, circles: &[Circle], min_overlaps: usize) -> Option<i64> {
         rect.max_y,
     ));
 
-    // count how many circles overlap with the sub-rectangles
-    let mut count1 = 0;
-    let mut count2 = 0;
-    let mut count3 = 0;
-    let mut count4 = 0;
-
-    for c in circles {
-        if rect1.area() > 0 && rect1.overlaps(c) {
-            count1 += 1;
-        }
-        if rect2.area() > 0 && rect2.overlaps(c) {
-            count2 += 1;
-        }
-        if rect3.area() > 0 && rect3.overlaps(c) {
-            count3 += 1;
-        }
-        if rect4.area() > 0 && rect4.overlaps(c) {
-            count4 += 1;
-        }
-    }
-
     // Look in the sub-rectangles for a single point where exactly
     // `min_overlaps` circles overlap. This can only happen if their count is
     // larger than or equal to `min_overlaps`. Otherwise, we don't need to go
     // deeper.
-    if count1 >= min_overlaps
-        && let Some(r) = dfs(&rect1, circles, min_overlaps)
-    {
-        return Some(r);
-    }
-    if count2 >= min_overlaps
-        && let Some(r) = dfs(&rect2, circles, min_overlaps)
-    {
-        return Some(r);
-    }
-    if count3 >= min_overlaps
-        && let Some(r) = dfs(&rect3, circles, min_overlaps)
-    {
-        return Some(r);
-    }
-    if count4 >= min_overlaps
-        && let Some(r) = dfs(&rect4, circles, min_overlaps)
-    {
-        return Some(r);
+    for r in [rect1, rect2, rect3, rect4] {
+        // count how many circles overlap with the sub-rectangle
+        let count = if r.area() > 0 {
+            *cache
+                .entry(r)
+                .or_insert_with(|| circles.iter().filter(|c| r.overlaps(c)).count())
+        } else {
+            0
+        };
+
+        // go deeper if necessary
+        if count >= min_overlaps
+            && let Some(result) = dfs(&r, circles, min_overlaps, cache)
+        {
+            return Some(result);
+        }
     }
 
     None
@@ -238,9 +221,15 @@ fn main() {
     // try to find a single point where `min_overlaps` circles overlap. Try this
     // again and again until we found the point. Since we start with the highest
     // value, the first point we find, will be the one we're looking for.
+    let mut cache = FxHashMap::default();
     let mut min_overlaps = circles.len();
     while min_overlaps > 0 {
-        if let Some(r) = dfs(&Rect::from((min, min, max, max)), &circles, min_overlaps) {
+        if let Some(r) = dfs(
+            &Rect::from((min, min, max, max)),
+            &circles,
+            min_overlaps,
+            &mut cache,
+        ) {
             println!("{r}");
             break;
         }
